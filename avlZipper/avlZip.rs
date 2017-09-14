@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 struct Avl<K, V> {
     key: K,
     v: V,
-    height: u32,
+    balance: u8, // -1 -> left balanced, +1 -> right balanced 
     right: AvlTree<K,V>,
     left: AvlTree<K,V>
 }
@@ -12,8 +12,8 @@ type AvlTree<K, V> = Option<Box<Avl<K,V>>>;
 
 enum Path<K, V> {
     Top,
-    LNode { t: AvlTree<K, V>, key: K, v: V, height: u32, p: Box<Path<K, V>> },
-    RNode { p: Box<Path<K, V>>, key: K, v: V, height: u32, t: AvlTree<K, V> }
+    LNode { t: AvlTree<K, V>, key: K, v: V, balance: u8, p: Box<Path<K, V>> },
+    RNode { p: Box<Path<K, V>>, key: K, v: V, balance: u8, t: AvlTree<K, V> }
 }
 
 type Location<K, V> = (AvlTree<K, V>, Path<K, V>); 
@@ -21,10 +21,10 @@ type Location<K, V> = (AvlTree<K, V>, Path<K, V>);
 fn zip<K, V>(lc: Location<K, V>) -> AvlTree<K, V> {
     match lc {
         (tr, Path::Top) => tr,
-        (tr, Path::LNode{t, key, v, height, p}) =>
-            zip((Some(Box::new(Avl{key: key, v: v, height: height, right: tr, left: t})), *p)),
-        (tr, Path::RNode{t, key, v, height, p}) =>
-            zip((Some(Box::new(Avl{key: key, v: v, height: height, right: t, left: tr})), *p)),
+        (tr, Path::LNode{t, key, v, balance, p}) =>
+            zip((Some(Box::new(Avl{key: key, v: v, balance: balance, right: tr, left: t})), *p)),
+        (tr, Path::RNode{t, key, v, balance, p}) =>
+            zip((Some(Box::new(Avl{key: key, v: v, balance: balance, right: t, left: tr})), *p)),
     }
 }
 
@@ -47,8 +47,8 @@ fn go_right<K, V>(loc: Location<K, V>) -> Location<K, V> {
         (None, _) => panic!("cannot go right"),
         (Some(t), p) => {
             let t_ = *t;
-            let Avl{key, v, height, right, left} = t_;
-            (right, Path::RNode{p: Box::new(p), key:key, v: v, height: height, t: left})
+            let Avl{key, v, balance, right, left} = t_;
+            (right, Path::LNode{t: left, key:key, v: v, balance: balance, p: Box::new(p)})
         }
     }
 }
@@ -58,8 +58,8 @@ fn go_left<K, V>(loc: Location<K, V>) -> Location<K, V> {
         (None, _) => panic!("cannot go left"),
         (Some(t), p) => {
             let t_ = *t;
-            let Avl{key, v, height, right, left} = t_;
-            (left, Path::RNode{p: Box::new(p), key:key, v: v, height: height, t: right})
+            let Avl{key, v, balance, right, left} = t_;
+            (left, Path::RNode{p: Box::new(p), key:key, v: v, balance: balance, t: right})
         }
     }
 }
@@ -76,12 +76,12 @@ fn search<K: Ord, V>(key: &K, loc: Location<K, V>) -> Location<K, V> {
     }
 }
 
-fn insert<K: Ord, V>(key: K, v: V, t: AvlTree<K, V>) {
+fn insert<K: Ord, V>(key: K, v: V, t: AvlTree<K, V>) -> AvlTree<K, V>{
     match search(&key, (t, Path::Top)) {
         (None, p) =>
-            zip((Some(Box::new(Avl{key: key, v: v, height: 0, right: None, left: None})), p)),
+            zip((Some(Box::new(Avl{key: key, v: v, balance: 0, right: None, left: None})), p)),
         (Some(_), _) => panic!("key already exists")
-    };
+    }
 }
 
 fn rotate_right<K, V>(mut t: Box<Avl<K, V>>) -> Box<Avl<K, V>> {
@@ -101,21 +101,19 @@ fn rotate_left<K, V>(mut t: Box<Avl<K, V>>) -> Box<Avl<K, V>> {
 }
 
 fn print(t: &AvlTree<i32, i32>) {
-    match t {
-        None => println("."),
-        Some(ref t) => {
-            match t {
-                Avl{key, v, height, right, left} => {
-                    println("key: {}, v: {}, height: {}", key, v, height);
-                    print(&right); print(&left)
-                }
-            }
+    match *t {
+        None => println!("."),
+        Some(ref n) => {
+            let Avl{key, v, balance, ref right, ref left} = **n;
+            println!("key: {}, v: {}, balance: {}", key, v, balance);
+            print!("R: "); print(right);
+            print!("L: "); print(left)
         }
     }
 }
 
 fn main() {
-    let t0 = insert(6, 1, None);
+    let t0 = insert(1, 4, insert(8, 2, insert(6, 1, None)));
     print(&t0)
 }
 
