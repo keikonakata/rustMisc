@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 struct Avl<K, V> {
     key: K,
     v: V,
-    balance: u8, // -1 -> left balanced, +1 -> right balanced 
+    balance: i8, // -1 -> left biased, +1 -> right biased
     right: AvlTree<K,V>,
     left: AvlTree<K,V>
 }
@@ -12,8 +12,8 @@ type AvlTree<K, V> = Option<Box<Avl<K,V>>>;
 
 enum Path<K, V> {
     Top,
-    LNode { t: AvlTree<K, V>, key: K, v: V, balance: u8, p: Box<Path<K, V>> },
-    RNode { p: Box<Path<K, V>>, key: K, v: V, balance: u8, t: AvlTree<K, V> }
+    LNode { t: AvlTree<K, V>, key: K, v: V, balance: i8, p: Box<Path<K, V>> },
+    RNode { p: Box<Path<K, V>>, key: K, v: V, balance: i8, t: AvlTree<K, V> }
 }
 
 type Location<K, V> = (AvlTree<K, V>, Path<K, V>); 
@@ -116,5 +116,3 @@ fn main() {
     let t0 = insert(1, 4, insert(8, 2, insert(6, 1, None)));
     print(&t0)
 }
-
-
