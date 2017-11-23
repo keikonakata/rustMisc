@@ -76,6 +76,42 @@ fn search<K: Ord, V>(key: &K, loc: Location<K, V>) -> Location<K, V> {
     }
 }
 
+fn zip_rebalance_rec<K, V>(lc: Location<K, V>) -> Location<K, V> {
+    match lc {
+        (subt, Path::LNode{t, key, v, balance, p}) => // The right subtree increased
+            match subt {
+                None => panic!("not possible'"),
+                Some(_subt) =>
+                    if (balance > 0) {
+                        if (_subt.balance < 0) {
+                            panic!("not implemented")
+                        } else {
+                            panic!("not implemented")
+                        }
+                    } else {
+                        panic!("not implemented")
+                    }
+            },
+        (subt, Path::RNode{p, key, v, balance, t}) => panic!(""),
+        _ => lc
+    }
+}
+
+fn zip_rebalance<K, V>(lc: Location<K, V>) -> AvlTree<K, V> {
+    match zip_rebalance_rec(lc) {
+        (t, Path::Top) => t,
+        (_, _) => panic!("zip_rebalance is incomplete")
+    }
+}
+
+fn insert_and_balance<K: Ord, V>(key: K, v: V, t: AvlTree<K, V>) -> AvlTree<K, V> {
+    match search(&key, (t, Path::Top)) {
+        (None, p) =>
+            zip_rebalance((Some(Box::new(Avl{key: key, v: v, balance: 0, right: None, left: None})), p)),
+       (Some(_), _) => panic!("key already exists")
+    }
+}
+
 fn insert<K: Ord, V>(key: K, v: V, t: AvlTree<K, V>) -> AvlTree<K, V>{
     match search(&key, (t, Path::Top)) {
         (None, p) =>
