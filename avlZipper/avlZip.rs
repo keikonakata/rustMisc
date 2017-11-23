@@ -86,6 +86,16 @@ fn insert<K: Ord, V>(key: K, v: V, t: AvlTree<K, V>) -> AvlTree<K, V>{
 
 fn rotate_right<K, V>(mut t: Box<Avl<K, V>>) -> Box<Avl<K, V>> {
     let mut l = t.left.take().expect("Left child is null");
+    // adjust balance
+    if l.balance == -1 {
+        t.balance = 0;
+        l.balance = 0
+    } else if l.balance == 0 {
+        t.balance = -1;
+        l.balance = 1;
+    } else {
+        panic!("impossible")
+    };
     let lr = l.right.take();  
     t.left = lr;
     l.right = Some(t);
@@ -94,6 +104,16 @@ fn rotate_right<K, V>(mut t: Box<Avl<K, V>>) -> Box<Avl<K, V>> {
 
 fn rotate_left<K, V>(mut t: Box<Avl<K, V>>) -> Box<Avl<K, V>> {
     let mut r = t.right.take().expect("Right child is null");
+    // adjust balance
+    if r.balance == 1 {
+        t.balance = 0;
+        r.balance = 0
+    } else if r.balance == 0 {
+        t.balance = 1;
+        r.balance = -1;
+    } else {
+        panic!("impossible")
+    };
     let rl = r.left.take();  
     t.right = rl;
     r.left = Some(t);
