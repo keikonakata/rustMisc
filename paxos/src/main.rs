@@ -24,11 +24,11 @@ fn main() {
 
     let replica = thread::spawn(move || { replica::replica(rx); });
 
-    let aids = BTreeSet::new();
+    let mut aids = BTreeSet::new();
     aids.insert(0);
     aids.insert(1);
     aids.insert(2);
-    let leader = thread::spawn(|| { leader::leader(aids, rx2, atxs, v); });
+    let leader = thread::spawn(|| { leader::leader(0, aids, rx2, tx2, atxs, v); });
 
     let acceptor1 = thread::spawn(move || { acceptor::acceptor(0, arx1); });
     let acceptor2 = thread::spawn(move || { acceptor::acceptor(1, arx2); });
