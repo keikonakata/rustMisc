@@ -23,7 +23,8 @@ pub fn acceptor(id: AcceptorId, rx: Receiver<Acceptor>) {
                 println!("Acceptor{}: P2B on {}", &id, &ballot_num);
                 tx.send(Commander::P2B(id, ballot_num.clone()));
             },
+            Acceptor::Test => { println!("Acceptor{} Test", &id); },
         }
-        println!("Acceptor{}: exiting", &id);
     }
+    println!("Acceptor{}: exiting", &id);
 }

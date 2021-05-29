@@ -38,6 +38,14 @@ pub type AcceptorId = u8;
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 enum Op { Step }
 
+impl fmt::Display for Op {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result  {
+        match self {
+            Op::Step =>  write!(f, "Step"),
+        }
+    }
+}
+
 #[derive(Copy, Clone)]
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub struct Command { k: ClientId, c: CommandId, o: Op}
@@ -49,6 +57,13 @@ impl Command {
             c: 0,
             o: Op::Step,
         }
+    }
+}
+
+impl fmt::Display for Command {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result  {
+        let Command { k:k, c:c, o:o } = self;
+        write!(f, "({}, {}, {})", k, c, o)
     }
 }
 
@@ -80,6 +95,7 @@ pub enum Commander {
 pub enum Acceptor {
     P1A(Sender<Scout>, Ballot),
     P2A(Sender<Commander>, Pvalue),
+    Test,
 }
 
 pub enum Scout {

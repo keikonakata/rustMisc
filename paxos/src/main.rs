@@ -4,6 +4,8 @@ use std::sync::mpsc;
 use std::sync::mpsc::Sender;
 use std::thread;
 
+const WINDOW : u8 = 5;
+
 mod messages;
 mod replica;
 mod leader;
@@ -22,7 +24,8 @@ fn main() {
     let (atx3, arx3) = mpsc::channel();
     let atxs = vec![atx1, atx2, atx3];
 
-    let replica = thread::spawn(move || { replica::replica(rx); });
+    let leaders = vec![tx2.clone()];
+    let replica = thread::spawn(move || { replica::replica(0, rx, &leaders); });
 
     let mut aids = BTreeSet::new();
     aids.insert(0);
@@ -38,5 +41,6 @@ fn main() {
     tx.send(val).unwrap();
     drop(tx);
     replica.join().unwrap();
+    println!("Main exiting");
 }
 

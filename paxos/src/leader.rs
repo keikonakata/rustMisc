@@ -6,7 +6,8 @@ use std::thread;
 use crate::messages::*;
 
 fn commander(leader: Sender<Leader>, aids: BTreeSet<AcceptorId>, acceptors: Vec<Sender<Acceptor>>, replicas: Vec<Sender<Replica>>, pval: Pvalue) {
-    let waitfor = aids;
+    let len = aids.len();
+    let mut waitfor = aids;
 
     let (tx, rx) = mpsc::channel();
     let acs = acceptors.iter();
@@ -21,8 +22,19 @@ fn commander(leader: Sender<Leader>, aids: BTreeSet<AcceptorId>, acceptors: Vec<
         match rx.recv().unwrap() {
             Commander::P2B(aid, b) => {
                 if pval.b == b {
+                    waitfor.remove(&aid);
+                    if waitfor.len() < len/2 {
+                        let Pvalue { b: b, s: s, c: c} = pval;
+                        println!("C: Decided on ({}, {})", &s, &c);
+                        for r in &replicas {
+                            r.send(Replica::Decision(Proposal {s: s, c: c}));
+                        }
+                        stat = false;
+                    }
                 } else {
+                    println!("C: preempted on {}", &b);
                     leader.send(Leader::Preempted(b));
+                    stat = false;
                 }
             },
         }
@@ -31,7 +43,7 @@ fn commander(leader: Sender<Leader>, aids: BTreeSet<AcceptorId>, acceptors: Vec<
     println!("Commander exiting");
 }
 
-fn scout(l: Sender<Leader>, aids: BTreeSet<AcceptorId>, acceptors: Vec<Sender<Acceptor>>, b: Ballot) {
+fn scout(l: &Sender<Leader>, aids: BTreeSet<AcceptorId>, acceptors: Vec<Sender<Acceptor>>, b: Ballot) {
     let len = aids.len();
     let mut pvalues = BTreeSet::<Pvalue>::new();
     let mut waitfor = aids;
@@ -74,7 +86,7 @@ pub fn leader(id: LeaderId, aids: BTreeSet<AcceptorId>, own: Receiver<Leader>, o
     let tx = ownt.clone();
     let aids0 = aids.clone();
     let acceptors0 = acceptors.clone();
-    thread::spawn(move || scout(tx, aids0, acceptors0, ballot_num.clone()));
+    thread::spawn(move || scout(&tx, aids0, acceptors0, ballot_num.clone()));
     for m in own {
         match m {
             Leader::Propose(p) => {
