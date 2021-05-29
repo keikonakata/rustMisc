@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::vec::Vec;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
@@ -44,6 +44,8 @@ fn commander(leader: Sender<Leader>, aids: BTreeSet<AcceptorId>, acceptors: Vec<
 }
 
 fn scout(l: &Sender<Leader>, aids: BTreeSet<AcceptorId>, acceptors: Vec<Sender<Acceptor>>, b: Ballot) {
+    println!("S: starting");
+
     let len = aids.len();
     let mut pvalues = BTreeSet::<Pvalue>::new();
     let mut waitfor = aids;
@@ -75,13 +77,44 @@ fn scout(l: &Sender<Leader>, aids: BTreeSet<AcceptorId>, acceptors: Vec<Sender<A
             }
         }
     }
-    println!("Scount: exiting");
+    println!("S: exiting");
+}
+
+fn max(pvals: BTreeSet<Pvalue>) -> BTreeMap<Slot, Command> {
+    let mut m = BTreeMap::new();
+
+    pvals.iter()
+        .for_each(|pval| {
+            let Pvalue {b: b, s: s, c: c} = pval;
+            match m.get(s) {
+                Some((b0, c0)) => {
+                    if b > b0 {
+                        m.insert(*s, (*b, *c));
+                    }
+                },
+                None => { m.insert(*s, (*b, *c)); },
+            }
+        });
+
+    let mut n = BTreeMap::new();
+    m.iter()
+        .for_each(|(s, (_, c))| {
+            n.insert(*s, *c);
+        });
+    n
+}
+
+fn update(old: &mut BTreeMap<Slot, Command>, new: BTreeMap<Slot, Command>){
+    new.iter()
+        .for_each(|(s, c)| {
+            old.insert(*s, *c);
+        })
 }
 
 pub fn leader(id: LeaderId, aids: BTreeSet<AcceptorId>, own: Receiver<Leader>, ownt: Sender<Leader>, acceptors: Vec<Sender<Acceptor>>, replicas: Vec<Sender<Replica>>) {
     let mut active = false;
     let mut ballot_num = Ballot::make(id);
-    let mut proposals = BTreeSet::new();
+    let mut proposals = BTreeMap::new();
 
     let tx = ownt.clone();
     let aids0 = aids.clone();
@@ -89,25 +122,28 @@ pub fn leader(id: LeaderId, aids: BTreeSet<AcceptorId>, own: Receiver<Leader>, o
     thread::spawn(move || scout(&tx, aids0, acceptors0, ballot_num.clone()));
     for m in own {
         match m {
-            Leader::Propose(p) => {
-                if !proposals.contains(&p) {
-                    proposals.insert(p.clone());
-                    if active {
-                        let Proposal { s: mut s, c: mut c} = p;
-                        let v = Pvalue { b: ballot_num.clone(), s: s, c: c};
-                        let aids0 = aids.clone();
-                        let acceptors0 = acceptors.clone();
-                        let replicas0 = replicas.clone();
-                        let tx = ownt.clone();
-                        thread::spawn(move || commander(tx, aids0, acceptors0, replicas0, v));
+            Leader::Propose(Proposal {s: mut s, c: mut c}) => {
+                match proposals.get(&s) {
+                    Some(_) => (),
+                    None => {
+                        proposals.insert(s, c);
+                        if active {
+                            let v = Pvalue { b: ballot_num.clone(), s: s, c: c};
+                            let aids0 = aids.clone();
+                            let acceptors0 = acceptors.clone();
+                            let replicas0 = replicas.clone();
+                            let tx = ownt.clone();
+                            thread::spawn(move || commander(tx, aids0, acceptors0, replicas0, v));
+                        }
                     }
                 }
             },
-            Leader::Adopted(b, pvals) => {
+            Leader::Adopted(b, mut pvals) => {
+                let new = max(pvals);
+                update(&mut proposals, new);
                 let iter = proposals.iter();
-                for p in iter {
-                        let Proposal { s: mut s, c: mut c} = p;
-                        let v = Pvalue { b: ballot_num.clone(), s: s, c: c};
+                for (s, c) in iter {
+                        let v = Pvalue { b: ballot_num.clone(), s: *s, c: *c};
                         let aids0 = aids.clone();
                         let acceptors0 = acceptors.clone();
                         let replicas0 = replicas.clone();
@@ -119,6 +155,11 @@ pub fn leader(id: LeaderId, aids: BTreeSet<AcceptorId>, own: Receiver<Leader>, o
             Leader::Preempted(b0) => {
                 if b0 > ballot_num {
                     active = false;
+                    ballot_num = b0.incr(&id);
+                    let tx = ownt.clone();
+                    let aids0 = aids.clone();
+                    let acceptors0 = acceptors.clone();
+                    thread::spawn(move || scout(&tx, aids0, acceptors0, ballot_num.clone()));
                 }
             },
         }

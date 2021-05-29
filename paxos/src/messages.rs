@@ -15,6 +15,13 @@ impl Ballot {
     pub fn make(id: u8) -> Ballot {
         Ballot::N(0, id)
     }
+
+    pub fn incr(&self, id: &u8) -> Ballot {
+        match self {
+            Ballot::N(i, _) => Ballot::N(i+1, *id),
+            Ballot::Bot => panic!(),
+        }
+    }
 }
 
 impl fmt::Display for Ballot {
@@ -30,18 +37,18 @@ type ClientId = u8;
 
 type CommandId = u8;
 
-type Slot = u8;
+pub type Slot = u8;
 
 pub type AcceptorId = u8;
 
 #[derive(Copy, Clone)]
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
-enum Op { Step }
+enum Op { Step(i8) }
 
 impl fmt::Display for Op {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result  {
         match self {
-            Op::Step =>  write!(f, "Step"),
+            Op::Step(i) =>  write!(f, "Step{}", i),
         }
     }
 }
@@ -55,7 +62,7 @@ impl Command {
         Command {
             k: 0,
             c: 0,
-            o: Op::Step,
+            o: Op::Step(0),
         }
     }
 }

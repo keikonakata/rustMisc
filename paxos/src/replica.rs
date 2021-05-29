@@ -27,7 +27,7 @@ fn propose(req: &mut BTreeSet<Command>, proposals: &mut BTreeMap::<u8, Command>,
     };
 }
 
-pub fn perform() {
+pub fn perform(state: &mut Vec<i8>) {
 }
 
 pub fn replica(id: u8, rx: Receiver::<Replica>, leaders: &Vec<Sender<Leader>>) {
@@ -36,6 +36,7 @@ pub fn replica(id: u8, rx: Receiver::<Replica>, leaders: &Vec<Sender<Leader>>) {
     let mut decisions = BTreeMap::<u8, _>::new();
     let mut proposals = BTreeMap::<u8, _>::new();
     let mut slot_out = 1;
+    let mut state = Vec::new();
 
     for received in rx {
         match received {
@@ -51,7 +52,7 @@ pub fn replica(id: u8, rx: Receiver::<Replica>, leaders: &Vec<Sender<Leader>>) {
                             Some(c1) => { if c0 != c1 { req.insert(*c1); } },
                             None => (),
                         }
-                     perform();
+                     perform(&mut state);
                     },
                     None => (),
                 }
