@@ -43,7 +43,7 @@ pub type AcceptorId = u8;
 
 #[derive(Copy, Clone)]
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
-enum Op { Step(i8) }
+pub enum Op { Step(i8) }
 
 impl fmt::Display for Op {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result  {
@@ -55,14 +55,14 @@ impl fmt::Display for Op {
 
 #[derive(Copy, Clone)]
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
-pub struct Command { k: ClientId, c: CommandId, o: Op}
+pub struct Command { k: ClientId, c: CommandId, pub o: Op}
 
 impl Command {
-    pub fn make() -> Command {
+    pub fn make(i: i8) -> Command {
         Command {
             k: 0,
             c: 0,
-            o: Op::Step(0),
+            o: Op::Step(i),
         }
     }
 }
@@ -84,8 +84,8 @@ pub enum Replica {
 }
 
 impl Replica {
-    pub fn request() -> Replica {
-        Replica::Request(Command::make())
+    pub fn request(i: i8) -> Replica {
+        Replica::Request(Command::make(i))
     }
 }
 
