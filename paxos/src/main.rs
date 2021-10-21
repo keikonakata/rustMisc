@@ -5,8 +5,6 @@ use std::sync::mpsc;
 use std::sync::mpsc::Sender;
 use std::thread;
 
-const WINDOW : u8 = 5;
-
 mod messages;
 mod replica;
 mod leader;

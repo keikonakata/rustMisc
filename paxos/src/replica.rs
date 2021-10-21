@@ -1,13 +1,12 @@
 use std::collections::{BTreeMap, BTreeSet};
-use std::vec::Vec;
 use std::sync::mpsc::{Receiver, Sender};
-use std::thread;
+use std::vec::Vec;
 
 use crate::messages::*;
 
 fn propose(req: &mut BTreeSet<Command>, proposals: &mut BTreeMap::<u8, Command>, decisions: & BTreeMap::<u8, Command>, leaders: &Vec<Sender<Leader>>, slot_out: &u8, slot_in: &mut u8) {
 
-    while *slot_in < slot_out + crate::WINDOW && !req.is_empty() {
+    while *slot_in < *slot_out && !req.is_empty() {
         match decisions.get(&*slot_in) {
             Some(_) => (),
             None => {
